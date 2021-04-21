@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ user.user.get_full_name }}{% endblock %}
+{% block content %}
+<main role="main" class="container">
+  <div class="row">
+    {% include "user_info.html" %}
+    <div class="col-md-9">
+      {% include "post_item.html" with post=post %}
+    </div>
+  </div>
+</main>
+{% endblock %}

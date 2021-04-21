@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ user.user.get_full_name }}{% endblock %}
+{% block content %}
+<main role="main" class="container">
+  <div class="row">
+    {% include "user_info.html" %}
+    <div class="col-md-9">
+      {% for post in page %}
+      {% include "post_item.html" with post=post %}
+      {%endfor%}
+      {% include "include/paginator.html" %}
+    </div>
+  </div>
+</main>
+{% endblock %}
