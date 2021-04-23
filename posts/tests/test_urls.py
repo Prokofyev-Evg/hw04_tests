@@ -72,7 +72,9 @@ class PostsURLTests(TestCase):
             with self.subTest(url=url):
                 response = self.guest_client.get(url)
                 self.assertRedirects(
-                    response, f'/auth/login/?next={url}')
+                    response,
+                    f"{reverse('login')}?next={url}"
+                )
 
     def test_edit_post_access_anonymous_users(self):
         response = self.guest_client.get(
@@ -103,10 +105,15 @@ class PostsURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         templates_url_names = [
-            ('index.html', '/'),
-            ('group.html', '/group/test/'),
-            ('newpost.html', '/new/'),
-            ('newpost.html', f'/{self.user.username}/{self.userpost.id}/edit/')
+            ('index.html', reverse('index')),
+            ('group.html', reverse('show_group_post', kwargs={
+                'slug': 'test'
+            })),
+            ('newpost.html', reverse('new_post')),
+            ('newpost.html', reverse('post_edit', kwargs={
+                'username': self.user.username,
+                'post_id': self.userpost.id
+            })),
         ]
         for template, reverse_name in templates_url_names:
             with self.subTest():
