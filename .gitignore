@@ -7,8 +7,8 @@ __pycache__/
 *.so
 
 # Static
-# static/
-# posts/static/
+static/
+posts/static/
 
 # Distribution / packaging
 .Python
