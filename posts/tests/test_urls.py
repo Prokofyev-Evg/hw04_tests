@@ -73,7 +73,7 @@ class PostsURLTests(TestCase):
                 response = self.guest_client.get(url)
                 self.assertRedirects(
                     response,
-                    f"/auth/login/?next={url}"
+                    f"{reverse('login')}?next={url}"
                 )
 
     def test_edit_post_access_anonymous_users(self):
