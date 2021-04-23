@@ -5,8 +5,6 @@ from django.conf import settings
 
 from posts.models import Post, Group, User
 
-from itertools import islice
-
 
 class PostPagesTests(TestCase):
     @classmethod
