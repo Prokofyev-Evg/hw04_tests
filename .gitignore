@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Static
+static/
+posts/static/
+
 # Distribution / packaging
 .Python
 build/
@@ -144,7 +148,3 @@ dmypy.json
 .history/
 
 .mypy_cache
-
-
-static/
-posts/static/
