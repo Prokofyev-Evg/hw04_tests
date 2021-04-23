@@ -41,7 +41,7 @@ class PostPagesTests(TestCase):
 
     def test_index_correct_context(self):
         response = self.authorized_client.get(reverse('index'))
-        self.check_post_context_on_page(response.context['page'][0])
+        self.page_available(response.context)
 
     def test_index_paginator(self):
         batch_size = settings.PAGINATOR_PER_PAGE_VAL * 2
@@ -61,7 +61,7 @@ class PostPagesTests(TestCase):
         response = self.authorized_client.get((
             reverse('show_group_post', kwargs={'slug': self.group.slug})
         ))
-        self.check_post_context_on_page(response.context['page'][0])
+        self.page_available(response.context)
 
     def test_new_post_correct_context(self):
         response = self.authorized_client.get(reverse('new_post'))
@@ -73,6 +73,10 @@ class PostPagesTests(TestCase):
             with self.subTest(value=value):
                 form_field = response.context['form'].fields[value]
                 self.assertIsInstance(form_field, expected)
+
+    def test_index_has_post(self):
+        response = self.authorized_client.get(reverse('index'))
+        self.assertIn(self.post, response.context['page'])
 
     def test_group_has_post(self):
         response = self.authorized_client.get(
@@ -89,7 +93,7 @@ class PostPagesTests(TestCase):
         response = self.authorized_client.get(
             reverse('show_group_post', kwargs={'slug': new_group.slug})
         )
-        self.assertEqual(response.context['page'].paginator.count, 0)
+        self.assertNotIn(self.post, response.context['page'])
 
     def test_post_edit_correct_context(self):
         response = self.authorized_client.get(
@@ -110,7 +114,8 @@ class PostPagesTests(TestCase):
                 kwargs={'username': self.user.username}
             )
         )
-        self.check_post_context_on_page(response.context['page'][0])
+        self.assertEqual(response.context['page'][0], self.post)
+        self.assertEqual(response.context['author'], self.user)
 
     def test_post_correct_context(self):
         response = self.authorized_client.get(
@@ -119,10 +124,17 @@ class PostPagesTests(TestCase):
                 'post_id': self.post.id
             })
         )
-        self.check_post_context_on_page(response.context['post'])
-        self.assertEqual(response.context['user'], self.user)
+        post_context = {
+            'post': self.post,
+            'user': self.user
+        }
+        for key, value in post_context.items():
+            with self.subTest(key=key, value=value):
+                context = response.context[key]
+                self.assertEqual(context, value)
 
-    def check_post_context_on_page(self, post_object):
+    def page_available(self, context):
+        post_object = context['page'][0]
         self.assertEqual(post_object.author, self.user)
         self.assertEqual(post_object.pub_date, self.post.pub_date)
         self.assertEqual(post_object.text, self.post.text)
