@@ -3,10 +3,10 @@
 {% block content %}
 <main role="main" class="container">
   <div class="row">
-    {% include "user_info.html" %}
+    {% include "include/user_info.html" with author=author %}
     <div class="col-md-9">
       {% for post in page %}
-      {% include "post_item.html" with post=post %}
+      {% include "include/post_item.html" with post=post %}
       {%endfor%}
       {% include "include/paginator.html" %}
     </div>

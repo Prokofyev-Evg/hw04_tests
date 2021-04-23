@@ -1,6 +1,7 @@
-# posts/tests/tests_url.py
 from django.test import TestCase, Client
+from django.urls import reverse
 from posts.models import Post, Group, User
+from http import HTTPStatus
 
 
 class PostsURLTests(TestCase):
@@ -33,32 +34,39 @@ class PostsURLTests(TestCase):
 
     def test_pages_access_all_users(self):
         urls_list = [
-            '/',
-            '/group/test/',
-            '/about/author/',
-            '/about/tech/',
-            f'/{self.user.username}/',
-            f'/{self.user.username}/{self.userpost.id}/',
+            reverse('index'),
+            reverse('show_group_post', kwargs={'slug': 'test'}),
+            reverse('profile', kwargs={'username': self.user.username}),
+            reverse('post', kwargs={
+                'username': self.user.username,
+                'post_id': self.userpost.id
+            }),
         ]
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.guest_client.get(url)
-                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_pages_access_authorized_users(self):
         urls_list = [
-            '/new/',
-            f'/{self.user.username}/{self.userpost.id}/edit/',
+            reverse('new_post'),
+            reverse('post_edit', kwargs={
+                'username': self.user.username,
+                'post_id': self.userpost.id
+            }),
         ]
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.authorized_client.get(url)
-                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_pages_access_non_authorized_users(self):
         urls_list = [
-            '/new/',
-            f'/{self.user.username}/{self.userpost.id}/edit/',
+            reverse('new_post'),
+            reverse('post_edit', kwargs={
+                'username': self.user.username,
+                'post_id': self.userpost.id
+            }),
         ]
         for url in urls_list:
             with self.subTest(url=url):
@@ -68,27 +76,34 @@ class PostsURLTests(TestCase):
 
     def test_edit_post_access_anonymous_users(self):
         response = self.guest_client.get(
-            f'/{self.guest.username}/{self.userpost.id}/edit/'
+            reverse('post_edit', kwargs={
+                'username': self.guest.username,
+                'post_id': self.userpost.id
+            }),
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_edit_post_access_authorized_author(self):
         response = self.authorized_client.get(
-            f'/{self.user.username}/{self.userpost.id}/edit/'
+            reverse('post_edit', kwargs={
+                'username': self.user.username,
+                'post_id': self.userpost.id
+            }),
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_edit_post_access_authorized_non_author(self):
         response = self.authorized_client.get(
-            f'/{self.user.username}/{self.guestpost.id}/edit/'
+            reverse('post_edit', kwargs={
+                'username': self.guest.username,
+                'post_id': self.guestpost.id
+            }),
         )
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_urls_uses_correct_template(self):
         templates_url_names = [
             ('index.html', '/'),
-            ('about/author.html', '/about/author/'),
-            ('about/tech.html', '/about/tech/'),
             ('group.html', '/group/test/'),
             ('newpost.html', '/new/'),
             ('newpost.html', f'/{self.user.username}/{self.userpost.id}/edit/')

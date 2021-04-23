@@ -1,8 +1,11 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django import forms
+from django.conf import settings
 
 from posts.models import Post, Group, User
+
+from itertools import islice
 
 
 class PostPagesTests(TestCase):
@@ -14,35 +17,23 @@ class PostPagesTests(TestCase):
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
 
-        cls.group_a = Group.objects.create(
-            title="Тестовая группа A",
-            slug="test_a",
-            description="Описание тестовой группы A"
+        cls.group = Group.objects.create(
+            title="Тестовая группа",
+            slug="test_group",
+            description="Описание тестовой группы"
         )
-        cls.group_b = Group.objects.create(
-            title="Тестовая группа B",
-            slug="test_b",
-            description="Описание тестовой группы B"
+        cls.post = Post.objects.create(
+            text='Заголовок тестовой задачи',
+            group=cls.group,
+            author=cls.user
         )
-        # cls.post = Post.objects.create(
-        #     text='Заголовок тестовой задачи',
-        #     group=cls.group_a,
-        #     author=cls.user
-        # )
-        cls.post = []
-        for i in range(20):
-            cls.post.append(Post.objects.create(
-                text=f'Заголовок тестовой задачи {i}',
-                group=cls.group_a,
-                author=cls.user
-            ))
 
     def test_pages_use_correct_template(self):
         templates_pages_names = {
             'index.html': reverse('index'),
             'newpost.html': reverse('new_post'),
             'group.html': (
-                reverse('show_group_post', kwargs={'slug': 'test_a'})
+                reverse('show_group_post', kwargs={'slug': self.group.slug})
             ),
         }
         for template, reverse_name in templates_pages_names.items():
@@ -52,22 +43,27 @@ class PostPagesTests(TestCase):
 
     def test_index_correct_context(self):
         response = self.authorized_client.get(reverse('index'))
-        post_object = response.context['page'][0]
-        self.assertEqual(post_object.author, self.user)
-        self.assertEqual(post_object.pub_date, self.post[-1].pub_date)
-        self.assertEqual(post_object.text, self.post[-1].text)
-        self.assertEqual(post_object.group, self.post[-1].group)
-        self.assertEqual(len(response.context['page']), 10)
+        self.page_available(response.context)
+
+    def test_index_paginator(self):
+        batch_size = settings.PAGINATOR_PER_PAGE_VAL * 2
+        objs = (Post(
+            text='Test %s' % i,
+            group=self.group,
+            author=self.user
+        ) for i in range(batch_size))
+        Post.objects.bulk_create(objs, batch_size)
+        response = self.authorized_client.get(reverse('index'))
+        self.assertEqual(
+            len(response.context['page']),
+            settings.PAGINATOR_PER_PAGE_VAL
+        )
 
     def test_group_correct_context(self):
         response = self.authorized_client.get((
-            reverse('show_group_post', kwargs={'slug': 'test_a'})
+            reverse('show_group_post', kwargs={'slug': self.group.slug})
         ))
-        post_object = response.context['page'][0]
-        self.assertEqual(post_object.author, self.user)
-        self.assertEqual(post_object.pub_date, self.post[-1].pub_date)
-        self.assertEqual(post_object.text, self.post[-1].text)
-        self.assertEqual(post_object.group, self.post[-1].group)
+        self.page_available(response.context)
 
     def test_new_post_correct_context(self):
         response = self.authorized_client.get(reverse('new_post'))
@@ -82,19 +78,24 @@ class PostPagesTests(TestCase):
 
     def test_index_has_post(self):
         response = self.authorized_client.get(reverse('index'))
-        self.assertIn(self.post[-1], response.context['page'])
+        self.assertIn(self.post, response.context['page'])
 
-    def test_group_a_has_post(self):
+    def test_group_has_post(self):
         response = self.authorized_client.get(
-            reverse('show_group_post', kwargs={'slug': 'test_a'})
+            reverse('show_group_post', kwargs={'slug': self.group.slug})
         )
-        self.assertIn(self.post[-1], response.context['page'])
+        self.assertIn(self.post, response.context['page'])
 
-    def test_group_b_has_not_post(self):
-        response = self.authorized_client.get(
-            reverse('show_group_post', kwargs={'slug': 'test_b'})
+    def test_new_group_has_not_post(self):
+        new_group = Group.objects.create(
+            title="Новая тестовая группа",
+            slug="new_group",
+            description="Описание новой тестовой группы"
         )
-        self.assertNotIn(self.post[-1], response.context['page'])
+        response = self.authorized_client.get(
+            reverse('show_group_post', kwargs={'slug': new_group.slug})
+        )
+        self.assertNotIn(self.post, response.context['page'])
 
     def test_post_edit_correct_context(self):
         response = self.authorized_client.get(
@@ -102,11 +103,11 @@ class PostPagesTests(TestCase):
                 'post_edit',
                 kwargs={
                     'username': self.user.username,
-                    'post_id': self.post[0].id
+                    'post_id': self.post.id
                 }
             )
         )
-        self.assertEqual(response.context['post'], self.post[0])
+        self.assertEqual(response.context['post'], self.post)
 
     def test_profile_correct_context(self):
         response = self.authorized_client.get(
@@ -115,21 +116,28 @@ class PostPagesTests(TestCase):
                 kwargs={'username': self.user.username}
             )
         )
-        self.assertEqual(response.context['page'][0], self.post[-1])
+        self.assertEqual(response.context['page'][0], self.post)
         self.assertEqual(response.context['author'], self.user)
 
     def test_post_correct_context(self):
         response = self.authorized_client.get(
             reverse('post', kwargs={
                 'username': self.user.username,
-                'post_id': self.post[0].id
+                'post_id': self.post.id
             })
         )
         post_context = {
-            'post': self.post[0],
+            'post': self.post,
             'user': self.user
         }
         for key, value in post_context.items():
             with self.subTest(key=key, value=value):
                 context = response.context[key]
                 self.assertEqual(context, value)
+
+    def page_available(self, context):
+        post_object = context['page'][0]
+        self.assertEqual(post_object.author, self.user)
+        self.assertEqual(post_object.pub_date, self.post.pub_date)
+        self.assertEqual(post_object.text, self.post.text)
+        self.assertEqual(post_object.group, self.post.group)
