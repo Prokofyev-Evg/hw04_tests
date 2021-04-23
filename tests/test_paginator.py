@@ -3,6 +3,7 @@ from django.core.paginator import Page, Paginator
 
 pytestmark = [pytest.mark.django_db]
 
+
 class TestGroupPaginatorView:
 
     def test_group_paginator_view_get(self, client, few_posts_with_group):
@@ -46,5 +47,5 @@ class TestGroupPaginatorView:
     def test_profile_paginator_view(self, client, few_posts_with_group):
         response = client.get(f'/{few_posts_with_group.author.username}/')
         assert isinstance(response.context['page'].paginator, Paginator), (
-            'Проверьте, что переменная `paginator` объекта `page` на странице `/` типа `Paginator`'
+            'Проверьте, что переменная `paginator` объекта `page` на странице `/<profile>/` типа `Paginator`'
         )
