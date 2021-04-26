@@ -35,7 +35,7 @@ class PostsURLTests(TestCase):
     def test_pages_access_all_users(self):
         urls_list = [
             reverse('index'),
-            reverse('show_group_post', kwargs={'slug': 'test'}),
+            reverse('show_group_post', kwargs={'slug': self.group.slug}),
             reverse('profile', kwargs={'username': self.user.username}),
             reverse('post', kwargs={
                 'username': self.user.username,

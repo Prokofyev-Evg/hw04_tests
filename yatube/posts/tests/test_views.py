@@ -74,12 +74,6 @@ class PostPagesTests(TestCase):
                 form_field = response.context['form'].fields[value]
                 self.assertIsInstance(form_field, expected)
 
-    def test_group_has_post(self):
-        response = self.authorized_client.get(
-            reverse('show_group_post', kwargs={'slug': self.group.slug})
-        )
-        self.assertIn(self.post, response.context['page'])
-
     def test_new_group_has_not_post(self):
         new_group = Group.objects.create(
             title="Новая тестовая группа",
@@ -101,7 +95,7 @@ class PostPagesTests(TestCase):
                 }
             )
         )
-        self.assertEqual(response.context['post'], self.post)
+        self.check_post_context_on_page(response.context['post'])
 
     def test_profile_correct_context(self):
         response = self.authorized_client.get(
@@ -124,6 +118,5 @@ class PostPagesTests(TestCase):
 
     def check_post_context_on_page(self, post_object):
         self.assertEqual(post_object.author, self.user)
-        self.assertEqual(post_object.pub_date, self.post.pub_date)
         self.assertEqual(post_object.text, self.post.text)
         self.assertEqual(post_object.group, self.post.group)
